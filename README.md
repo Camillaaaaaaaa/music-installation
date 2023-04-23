@@ -2,7 +2,7 @@
 
 You need the following Python libraries:
 
-opencv
-rtmidi2
-mediapipe
-numbpy
+* opencv
+* rtmidi2
+* mediapipe
+* numbpy
