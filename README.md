@@ -5,4 +5,4 @@ You need the following Python libraries:
 * cv2
 * rtmidi2
 * mediapipe
-* numbpy
+* numpy
