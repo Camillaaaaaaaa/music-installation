@@ -1,75 +1,56 @@
 import time
 import pygame
 import os
+import rtmidi2
 
 
 class LoopStation:
-    def __init__(self):
+    def __init__(self, amount_beats):
         self.bpm = 90
         self.len_beat = 60 / self.bpm
         self.len_music = 120
+        self.amount_beats = amount_beats
+
+        self.channels = []
+        self.notes = []
+        self.velocities = []
 
         # array for each beat in one 8 count with what tone(s) to play
-        self.tones = [[], [], [], [], [], [], [], []]
+        self.tones = []
+        for i in range(self.amount_beats):
+            self.tones.append([])
+        # print("tones", self.tones)
 
-        pygame.init()
-        self.beep = pygame.mixer.Sound("sounds/beep.wav")
-        self.bop = pygame.mixer.Sound("sounds/bop.wav")
-        pygame.mixer.Sound.set_volume(self.beep, 0.2)
-        pygame.mixer.Sound.set_volume(self.bop, 0.2)
-
-        self.allTones = {}
-        list_of_files = []
-        for root, dirs, files in os.walk("sounds/tones/"):
-            for file in files:
-                list_of_files.append(os.path.join(root, file))
-        for file in list_of_files:
-            self.allTones[file[13:15]] = pygame.mixer.Sound(file)
-
-        print(self.len_beat)
+        self.midiout = rtmidi2.MidiOut()
+        ports = rtmidi2.get_out_ports()
+        print(ports)
+        self.midiout.open_port(1)
 
     def set_tones(self, new_tones):
         self.tones = new_tones
 
     def play_tone(self, count):
-        pygame.mixer.stop()
-        if self.tones[count - 1]:
-            for tone in self.tones[count - 1]:
-                pass
-                self.allTones[tone].play()
-
         if count == 1:
-            self.beep.play()
+            # self.beep.play()
             count += 1
         else:
-            self.bop.play()
+            # self.bop.play()
             count += 1
-            if count > 8:
+            if count > self.amount_beats:
                 count = 1
+
+        # self.midiout.send_noteoff(0, 60)
+
+        self.channels = []
+        self.notes = []
+        self.velocities = []
+        for i in range(len(self.tones)):
+            for note in self.tones[i][count - 1]:
+                self.channels.append(i)
+                self.notes.append(15 * note + 30)
+                self.velocities.append(100)
+
+        self.midiout.send_noteon_many(self.channels, self.notes, self.velocities)
+        print("message sent", self.channels)
+
         return count
-
-    def play_tones(self):
-        start_time = time.time()
-        last_time = time.time()
-        count = 1
-
-        while time.time() < start_time + self.len_music:
-            # one beat is over
-            if time.time() >= last_time + self.len_beat:
-                print("beat")
-                pygame.mixer.stop()
-                if self.tones[count - 1]:
-                    for tone in self.tones[count - 1]:
-                        pass
-                        self.allTones[tone].play()
-
-                if count == 1:
-                    last_time = time.time()
-                    self.beep.play()
-                    count += 1
-                else:
-                    last_time = time.time()
-                    self.bop.play()
-                    count += 1
-                    if count > 8:
-                        count = 1
