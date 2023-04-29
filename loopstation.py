@@ -6,7 +6,7 @@ import rtmidi2
 
 class LoopStation:
     def __init__(self, amount_beats):
-        self.bpm = 90
+        self.bpm = 110
         self.len_beat = 60 / self.bpm
         self.len_music = 120
         self.amount_beats = amount_beats
@@ -25,6 +25,16 @@ class LoopStation:
         ports = rtmidi2.get_out_ports()
         print(ports)
         self.midiout.open_port(1)
+
+        # instrument mappings
+
+        # bass drum: C1, rim shot: C#1, Snare Drum: D1, Hand Clap: D#1, Snare Drum: G1, Ride:D2
+        drums = {5: 36, 4: 37, 3: 38, 2: 39, 1: 43, 0: 50}
+
+        # D2, F2, A2, C3, E3, G3
+        piano = {5: 50, 4: 53, 3: 57, 2: 60, 1: 64, 0: 67}
+
+        self.instruments=[drums,piano]
 
     def set_tones(self, new_tones):
         self.tones = new_tones
@@ -47,10 +57,10 @@ class LoopStation:
         for i in range(len(self.tones)):
             for note in self.tones[i][count - 1]:
                 self.channels.append(i)
-                self.notes.append(15 * note + 30)
+                self.notes.append(self.instruments[i][note])
                 self.velocities.append(100)
 
         self.midiout.send_noteon_many(self.channels, self.notes, self.velocities)
-        print("message sent", self.channels)
+        print("message sent", self.notes)
 
         return count

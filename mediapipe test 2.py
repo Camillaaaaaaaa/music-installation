@@ -13,14 +13,17 @@ class BodyDetection:
 
     def __init__(self):
         # different versions
-        self.amount_beats = 16
+        self.amount_beats = 8
         self.score_width = 1000
         self.height = 700
         self.increase_saturation = True
         self.detect_shirt_c = True
         self.show_other_tracks = True
+        self.outline = True
+        self.bigger_selection_space = True
 
-        self.amount_instruments = 4
+        self.amount_instruments = 2
+        self.instruments = ["Drums", "Piano"]
 
         self.current_instrument = 0
 
@@ -75,6 +78,7 @@ class BodyDetection:
 
         # colors
         self.head_color = (159, 66, 94)
+        self.head_outline_color = (0, 0, 0)
 
     def webcam_analysis(self):
         cap = cv2.VideoCapture(0)
@@ -173,14 +177,28 @@ class BodyDetection:
                 cv2.line(image_with_score, (line_x_pos, 0), (line_x_pos, image_with_score.shape[1]),
                          (0, 0, 0), 2)
 
-                # Flip the image horizontally for a selfie-view display.
-                cv2.imshow('MediaPipe Holistic', cv2.flip(image_with_score, 1))
+                image_with_score = cv2.flip(image_with_score, 1)
+                font = cv2.FONT_HERSHEY_SIMPLEX
+                cv2.putText(image_with_score, self.instruments[self.current_instrument], (10, 70), font, 2.5,
+                            (255, 255, 255), 2, cv2.LINE_AA)
 
-                for i in range(self.amount_instruments+1):
-                    if keyboard.is_pressed(i+1):
+                cv2.imshow('MediaPipe Holistic', image_with_score)
+
+                for i in range(self.amount_instruments + 1):
+                    if keyboard.is_pressed(i + 1):
                         print(i)
-                        self.current_instrument = i-1
-                        print("current",self.current_instrument)
+                        self.current_instrument = i - 1
+                        print("current", self.current_instrument)
+
+                        # delete last track of instrument
+                        self.notes_selected[self.current_instrument] = []
+                        for _ in range(self.loop_station.amount_beats):
+                            self.notes_selected[self.current_instrument].append([])
+                        self.loop_station.set_tones(self.notes_selected)
+
+                        # reset notes of instrument
+                        for note in self.notes[self.current_instrument]:
+                            note.status = 0
 
                 if cv2.waitKey(5) & 0xFF == 27:
                     break
@@ -201,9 +219,21 @@ class BodyDetection:
         return undistorted_img
 
     def draw_lines(self, img):
+        if self.outline:
+            cv2.line(img, (self.score_xpos, self.scores_y_pos[1]), (self.score_xpos, self.scores_y_pos[-2]),
+                     (255, 255, 255), 10)
+            cv2.line(img, (img.shape[1] - self.score_xpos, self.scores_y_pos[1]),
+                     (img.shape[1] - self.score_xpos, self.scores_y_pos[-2]), (255, 255, 255), 10)
+
         for i in range(1, len(self.scores_y_pos) - 1):
             h = self.scores_y_pos[i]
+            if self.outline:
+                cv2.line(img, (self.score_xpos, h), (img.shape[1] - self.score_xpos, h), (255, 255, 255), 6)
             cv2.line(img, (self.score_xpos, h), (img.shape[1] - self.score_xpos, h), (0, 0, 0), 3)
+
+        cv2.line(img, (self.score_xpos, self.scores_y_pos[1]), (self.score_xpos, self.scores_y_pos[-2]), (0, 0, 0), 7)
+        cv2.line(img, (img.shape[1] - self.score_xpos, self.scores_y_pos[1]),
+                 (img.shape[1] - self.score_xpos, self.scores_y_pos[-2]), (0, 0, 0), 7)
         return img
 
     def draw_notes(self, img):
@@ -232,16 +262,27 @@ class BodyDetection:
         return img
 
     def check_pos_in_note(self, pos):
+        return_value=False
         for note in self.notes[self.current_instrument]:
-            x_pos = int(self.score_xpos + self.score_width - self.section_width * (note.beat + 0.5))
-            radius = int(self.score_spacing / 2)
-
-            if math.sqrt((pos[0] - x_pos) ** 2 + (pos[1] - note.y_pos) ** 2) <= radius:
-                return note.y_pos, note.beat
+            if self.bigger_selection_space:
+                x_pos = int(self.score_xpos + self.score_width - self.section_width * (note.beat))
+                if x_pos-self.section_width < pos[0] < x_pos and note.y_pos - self.score_spacing / 2 < pos[
+                    1] < note.y_pos + self.score_spacing / 2:
+                    return_value= note.y_pos, note.beat
+                else:
+                    if note.status != 3:
+                        if note.status!=0:
+                            print("not selected", note.beat)
+                        note.status = 0
             else:
-                if note.status != 3:
-                    note.status = 0
-        return False
+                x_pos = int(self.score_xpos + self.score_width - self.section_width * (note.beat + 0.5))
+                radius = int(self.score_spacing / 2)
+                if math.sqrt((pos[0] - x_pos) ** 2 + (pos[1] - note.y_pos) ** 2) <= radius:
+                    return_value= note.y_pos, note.beat
+                else:
+                    if note.status != 3:
+                        note.status = 0
+        return return_value
 
     def detect_shirt_color(self, image, results):
         # get part of image of upper body
@@ -267,8 +308,11 @@ class BodyDetection:
             # cv2.imshow("cropped", crop_img)
 
             # reduce resolution to make it faster
-            crop_img = cv2.resize(crop_img, (int(crop_img.shape[1] / 3), int(crop_img.shape[0] / 3)),
-                                  interpolation=cv2.INTER_LINEAR)
+            try:
+                crop_img = cv2.resize(crop_img, (int(crop_img.shape[1] / 3), int(crop_img.shape[0] / 3)),
+                                      interpolation=cv2.INTER_LINEAR)
+            except:
+                print("could not crop image")
 
             # increase saturation
             # https://9to5answer.com/how-to-change-saturation-values-with-opencv
@@ -296,6 +340,10 @@ class BodyDetection:
             # print("color", (dominant[0], dominant[1], dominant[2]))
 
             self.head_color = (int(dominant[0]), int(dominant[1]), int(dominant[2]))
+            if (self.head_color[2] * 2 + self.head_color[0] + self.head_color[1] * 3) / 6 / 255 < 0.25:
+                self.head_outline_color = (255, 255, 255)
+            else:
+                self.head_outline_color = (0, 0, 0)
 
     def draw_user(self, image, results):
 
@@ -310,8 +358,10 @@ class BodyDetection:
         y_ear_r = results.pose_landmarks.landmark[self.mp_holistic.PoseLandmark.RIGHT_EAR].y * image_height
 
         radius_head = int(((x_ear_r - x_ear_l) ** 2 + (y_ear_r - y_ear_l) ** 2) ** 0.5 * 0.65)
+        if self.outline:
+            cv2.circle(image, (int(x_nose), int(y_nose)), int(radius_head), self.head_outline_color, 8)
 
-        cv2.circle(image, (int(x_nose), int(y_nose)), int(radius_head), self.head_color, 3)
+        cv2.circle(image, (int(x_nose), int(y_nose)), int(radius_head), self.head_color, 6)
 
         return image
 
