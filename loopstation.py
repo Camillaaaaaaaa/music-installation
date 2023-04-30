@@ -34,7 +34,13 @@ class LoopStation:
         # D2, F2, A2, C3, E3, G3
         piano = {5: 50, 4: 53, 3: 57, 2: 60, 1: 64, 0: 67}
 
-        self.instruments=[drums,piano]
+        # D0, F0, A0, C1, E1, G1
+        bass = {5: 26, 4: 29, 3: 33, 2: 36, 1: 40, 0: 43}
+
+        #  D2, F2, A2, C3, E3, G3
+        guitar = {5: 50, 4: 53, 3: 57, 2: 60, 1: 64, 0: 67}
+
+        self.instruments = [drums, piano, bass, guitar]
 
     def set_tones(self, new_tones):
         self.tones = new_tones

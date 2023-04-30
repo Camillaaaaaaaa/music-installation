@@ -22,8 +22,8 @@ class BodyDetection:
         self.outline = True
         self.bigger_selection_space = True
 
-        self.amount_instruments = 2
-        self.instruments = ["Drums", "Piano"]
+        self.amount_instruments = 4
+        self.instruments = ["Drums", "Piano","Bass", "Guitar"]
 
         self.current_instrument = 0
 
@@ -33,8 +33,8 @@ class BodyDetection:
         self.mp_holistic = mp.solutions.holistic
 
         self.note_radius = 0
-        self.sec_until_selected = 1.5
-        self.time_until_selecting = 0.5
+        self.sec_until_selected = 1
+        self.time_until_selecting = 0.4
         self.time_selection = 0
         self.last_note = [0, 0]
 
