@@ -5,8 +5,8 @@ import rtmidi2
 
 
 class LoopStation:
-    def __init__(self, amount_beats):
-        self.bpm = 110
+    def __init__(self, amount_beats, bpm):
+        self.bpm = bpm
         self.len_beat = 60 / self.bpm
         self.len_music = 120
         self.amount_beats = amount_beats
@@ -31,8 +31,8 @@ class LoopStation:
         # bass drum: C1, rim shot: C#1, Snare Drum: D1, Hand Clap: D#1, Snare Drum: G1, Ride:D2
         drums = {5: 36, 4: 37, 3: 38, 2: 39, 1: 43, 0: 50}
 
-        # D2, F2, A2, C3, E3, G3
-        piano = {5: 50, 4: 53, 3: 57, 2: 60, 1: 64, 0: 67}
+        # D3, F3, A3, C4, E4, G4
+        piano = {5: 62, 4: 65, 3: 69, 2: 72, 1: 76, 0: 79}
 
         # D0, F0, A0, C1, E1, G1
         bass = {5: 26, 4: 29, 3: 33, 2: 36, 1: 40, 0: 43}

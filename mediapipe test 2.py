@@ -14,20 +14,25 @@ class BodyDetection:
     def __init__(self):
         # different versions
         self.amount_beats = 8
+        self.bpm = 100
         self.score_width = 1000
         self.height = 700
-        self.increase_saturation = True
+        self.increase_saturation = False
         self.detect_shirt_c = True
         self.show_other_tracks = True
         self.outline = True
         self.bigger_selection_space = True
+        self.loop_instruments = False
+
+        self.loop_duration = 60
+        self.last_loop = 0
 
         self.amount_instruments = 4
-        self.instruments = ["Drums", "Piano","Bass", "Guitar"]
+        self.instruments = ["Drums", "Piano", "Bass", "Guitar"]
 
         self.current_instrument = 0
 
-        self.loop_station = LoopStation(self.amount_beats)
+        self.loop_station = LoopStation(self.amount_beats, self.bpm)
         self.mp_drawing = mp.solutions.drawing_utils
         self.mp_drawing_styles = mp.solutions.drawing_styles
         self.mp_holistic = mp.solutions.holistic
@@ -84,6 +89,7 @@ class BodyDetection:
         cap = cv2.VideoCapture(0)
         count = 1
         last_time = time.time()
+        self.last_loop = time.time()
 
         with self.mp_holistic.Holistic(
                 min_detection_confidence=0.5,
@@ -93,6 +99,14 @@ class BodyDetection:
 
                 # print("height", image.shape[0])
                 # print("width", image.shape[1])
+
+                # loop through instruments
+                if self.loop_instruments:
+                    if time.time() >= self.last_loop + self.loop_duration:
+                        self.last_loop = time.time()
+                        self.current_instrument += 1
+                        if self.current_instrument > 3:
+                            self.current_instrument = 0
 
                 # play note on beat
                 if time.time() >= last_time + self.loop_station.len_beat:
@@ -180,7 +194,9 @@ class BodyDetection:
                 image_with_score = cv2.flip(image_with_score, 1)
                 font = cv2.FONT_HERSHEY_SIMPLEX
                 cv2.putText(image_with_score, self.instruments[self.current_instrument], (10, 70), font, 2.5,
-                            (255, 255, 255), 2, cv2.LINE_AA)
+                            (0, 0, 0), 10, cv2.LINE_AA)
+                cv2.putText(image_with_score, self.instruments[self.current_instrument], (10, 70), font, 2.5,
+                            (255, 255, 255), 3, cv2.LINE_AA)
 
                 cv2.imshow('MediaPipe Holistic', image_with_score)
 
@@ -199,6 +215,9 @@ class BodyDetection:
                         # reset notes of instrument
                         for note in self.notes[self.current_instrument]:
                             note.status = 0
+
+                if keyboard.is_pressed("c"):
+                    self.detect_shirt_c = not self.detect_shirt_c
 
                 if cv2.waitKey(5) & 0xFF == 27:
                     break
@@ -262,23 +281,23 @@ class BodyDetection:
         return img
 
     def check_pos_in_note(self, pos):
-        return_value=False
+        return_value = False
         for note in self.notes[self.current_instrument]:
             if self.bigger_selection_space:
                 x_pos = int(self.score_xpos + self.score_width - self.section_width * (note.beat))
-                if x_pos-self.section_width < pos[0] < x_pos and note.y_pos - self.score_spacing / 2 < pos[
+                if x_pos - self.section_width < pos[0] < x_pos and note.y_pos - self.score_spacing / 2 < pos[
                     1] < note.y_pos + self.score_spacing / 2:
-                    return_value= note.y_pos, note.beat
+                    return_value = note.y_pos, note.beat
                 else:
                     if note.status != 3:
-                        if note.status!=0:
+                        if note.status != 0:
                             print("not selected", note.beat)
                         note.status = 0
             else:
                 x_pos = int(self.score_xpos + self.score_width - self.section_width * (note.beat + 0.5))
                 radius = int(self.score_spacing / 2)
                 if math.sqrt((pos[0] - x_pos) ** 2 + (pos[1] - note.y_pos) ** 2) <= radius:
-                    return_value= note.y_pos, note.beat
+                    return_value = note.y_pos, note.beat
                 else:
                     if note.status != 3:
                         note.status = 0
