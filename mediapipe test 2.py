@@ -14,21 +14,22 @@ class BodyDetection:
     def __init__(self):
         # different versions
         self.amount_beats = 8
-        self.bpm = 100
+        self.bpm = 140
         self.score_width = 1000
-        self.height = 700
+        self.height = 900
         self.increase_saturation = False
         self.detect_shirt_c = True
         self.show_other_tracks = True
         self.outline = True
         self.bigger_selection_space = True
         self.loop_instruments = False
+        self.base_drum_track = False
 
-        self.loop_duration = 60
+        self.loop_duration = 15
         self.last_loop = 0
 
-        self.amount_instruments = 4
-        self.instruments = ["Drums", "Piano", "Bass", "Guitar"]
+        self.amount_instruments = 8
+        self.instruments = ["Drums", "Piano", "Bass", "Guitar", "xylophone", "Piano Chords", "Guitar Chords"]
 
         self.current_instrument = 0
 
@@ -85,8 +86,25 @@ class BodyDetection:
         self.head_color = (159, 66, 94)
         self.head_outline_color = (0, 0, 0)
 
+        self.window_name = "loop station"
+
+        cv2.namedWindow(self.window_name, cv2.WND_PROP_FULLSCREEN)
+        cv2.setWindowProperty(self.window_name, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+
+        self.bpm_keys = [0, 0]
+        self.drum_key = 0
+        self.played_half_beat = False
+
+        # music loops
+        self.current_pos_loops = 0
+        self.music_loops_1 = [5, 6, 4]
+        self.music_loops_2 = [0, 6, 1]
+        self.current_loops = self.music_loops_1
+
     def webcam_analysis(self):
+        print("before video capture")
         cap = cv2.VideoCapture(0)
+        print("video capture")
         count = 1
         last_time = time.time()
         self.last_loop = time.time()
@@ -104,15 +122,30 @@ class BodyDetection:
                 if self.loop_instruments:
                     if time.time() >= self.last_loop + self.loop_duration:
                         self.last_loop = time.time()
-                        self.current_instrument += 1
-                        if self.current_instrument > 3:
-                            self.current_instrument = 0
+                        self.current_pos_loops += 1
+                        if self.current_pos_loops > len(self.current_loops) - 1:
+                            self.current_pos_loops = 0
+                        self.current_instrument = self.current_loops[self.current_pos_loops]
+
+                        # delete last track of instrument
+                        self.notes_selected[self.current_instrument] = []
+                        for _ in range(self.loop_station.amount_beats):
+                            self.notes_selected[self.current_instrument].append([])
+                        self.loop_station.set_tones(self.notes_selected)
+
+                        # reset notes of instrument
+                        for note in self.notes[self.current_instrument]:
+                            note.status = 0
 
                 # play note on beat
                 if time.time() >= last_time + self.loop_station.len_beat:
                     last_time = time.time()
                     count = self.loop_station.play_tone(count)
+                    self.played_half_beat = False
                     print(count)
+                if time.time() >= last_time + self.loop_station.len_beat / 2 and not self.played_half_beat:
+                    self.played_half_beat = True
+                    self.loop_station.play_half_beat(count)
 
                 if not success:
                     print("Ignoring empty camera frame.")
@@ -198,7 +231,12 @@ class BodyDetection:
                 cv2.putText(image_with_score, self.instruments[self.current_instrument], (10, 70), font, 2.5,
                             (255, 255, 255), 3, cv2.LINE_AA)
 
-                cv2.imshow('MediaPipe Holistic', image_with_score)
+                cv2.putText(image_with_score, "BPM: " + str(self.bpm), (image_with_score.shape[1] - 450, 70), font, 2.5,
+                            (0, 0, 0), 10, cv2.LINE_AA)
+                cv2.putText(image_with_score, "BPM: " + str(self.bpm), (image_with_score.shape[1] - 450, 70), font, 2.5,
+                            (255, 255, 255), 3, cv2.LINE_AA)
+
+                cv2.imshow(self.window_name, image_with_score)
 
                 for i in range(self.amount_instruments + 1):
                     if keyboard.is_pressed(i + 1):
@@ -216,8 +254,53 @@ class BodyDetection:
                         for note in self.notes[self.current_instrument]:
                             note.status = 0
 
-                if keyboard.is_pressed("c"):
-                    self.detect_shirt_c = not self.detect_shirt_c
+                if keyboard.is_pressed("0"):
+                    self.loop_instruments = False
+
+                if keyboard.is_pressed("8"):
+                    self.loop_instruments = True
+                    self.current_loops = self.music_loops_1
+                    self.current_pos_loops = 0
+                    self.current_instrument = self.current_loops[self.current_pos_loops]
+
+                if keyboard.is_pressed("9"):
+                    self.loop_instruments = True
+                    self.current_loops = self.music_loops_2
+                    self.current_pos_loops = 0
+                    self.current_instrument = self.current_loops[self.current_pos_loops]
+
+                # change bpm with q and w keys
+                if keyboard.is_pressed("q"):
+                    self.bpm_keys[0] = 1
+
+                if not keyboard.is_pressed("q") and self.bpm_keys[0] == 1:
+                    self.bpm -= 5
+                    self.bpm_keys[0] = 0
+                    self.loop_station.set_bpm(self.bpm)
+
+                if keyboard.is_pressed("w"):
+                    self.bpm_keys[1] = 1
+
+                if not keyboard.is_pressed("w") and self.bpm_keys[1] == 1:
+                    self.bpm += 5
+                    self.bpm_keys[1] = 0
+                    self.loop_station.set_bpm(self.bpm)
+
+                if keyboard.is_pressed("b"):
+                    self.drum_key = 1
+
+                if not keyboard.is_pressed("b") and self.drum_key == 1:
+                    self.drum_key = 0
+                    if self.base_drum_track:
+                        self.base_drum_track = False
+                        self.notes_selected[len(self.notes_selected) - 1] = [[], [], [], [], [], [], [], []]
+                        self.loop_station.set_tones(self.notes_selected)
+                    else:
+                        self.base_drum_track = True
+                        self.notes_selected[len(self.notes_selected) - 1] = [[2], [3], [2], [3], [2],
+                                                                             [3], [2],
+                                                                             [3]]
+                        self.loop_station.set_tones(self.notes_selected)
 
                 if cv2.waitKey(5) & 0xFF == 27:
                     break
