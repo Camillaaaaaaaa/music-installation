@@ -25,7 +25,7 @@ class BodyDetection:
         self.loop_instruments = False
         self.base_drum_track = False
 
-        self.loop_duration = 15
+        self.loop_duration = 45
         self.last_loop = 0
 
         self.amount_instruments = 8
@@ -240,6 +240,7 @@ class BodyDetection:
 
                 for i in range(self.amount_instruments + 1):
                     if keyboard.is_pressed(i + 1):
+                        self.loop_instruments = False
                         print(i)
                         self.current_instrument = i - 1
                         print("current", self.current_instrument)
