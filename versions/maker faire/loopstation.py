@@ -24,7 +24,7 @@ class LoopStation:
         self.midiout = rtmidi2.MidiOut()
         ports = rtmidi2.get_out_ports()
         print(ports)
-        self.midiout.open_port(1)
+        self.midiout.open_port(3)
 
         # instrument mappings
 

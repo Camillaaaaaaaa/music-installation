@@ -28,7 +28,7 @@ class BodyDetection:
         self.loop_duration = 45
         self.last_loop = 0
 
-        self.amount_instruments = 8
+        self.amount_instruments = 12
         self.instruments = ["Drums", "Piano", "Bass", "Guitar", "xylophone", "Piano Chords", "Guitar Chords"]
 
         self.current_instrument = 0
@@ -45,8 +45,8 @@ class BodyDetection:
         self.last_note = [0, 0]
 
         # music score
-        height_start = 70
-        height_stop = self.height - 250
+        height_start = 120
+        height_stop = self.height - 300
         self.score_xpos = 0
         self.section_width = 0
         self.score_spacing = (height_stop - height_start) / 6
@@ -466,22 +466,24 @@ class BodyDetection:
 
         cv2.circle(image, (int(x_nose), int(y_nose)), int(radius_head), self.head_color, 6)
 
-        return image
 
-        """self.mp_drawing.draw_landmarks(
+
+        self.mp_drawing.draw_landmarks(
             image,
             results.face_landmarks,
             self.mp_holistic.FACEMESH_CONTOURS,
             landmark_drawing_spec=None,
             connection_drawing_spec=self.mp_drawing_styles
-            .get_default_face_mesh_contours_style())"""
+            .get_default_face_mesh_contours_style())
 
-        '''self.mp_drawing.draw_landmarks(
+        self.mp_drawing.draw_landmarks(
             image,
             results.pose_landmarks,
             self.mp_holistic.POSE_CONNECTIONS,
             landmark_drawing_spec=self.mp_drawing_styles
-            .get_default_pose_landmarks_style())'''
+            .get_default_pose_landmarks_style())
+
+        return image
 
 
 detection = BodyDetection()
