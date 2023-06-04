@@ -35,10 +35,13 @@ class AbletonCommunication():
 
 
     def setModulation(self):
+        value=0
         while True:
-            mod = ([CONTROL_CHANGE | 1, 76, 100])
+            mod = ([CONTROL_CHANGE | 8, 76, value])
             self.midiout.send_message(mod)
-            time.sleep(0.1)
+            #print(value)
+            #value-=1
+            time.sleep(3)
 
 #mod=AbletonCommunication()
 #mod.setModulation()

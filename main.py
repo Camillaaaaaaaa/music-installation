@@ -8,10 +8,12 @@ import keyboard
 
 class Main:
     def __init__(self):
-        self.instruments = ["Bass", "Melody", "Drums"]
+        self.instruments = ["Drums", "Bass", "Melody"]
         self.current_instrument = 0
+        self.instruments_color = [(200, 0, 0), (0, 200, 0), (0, 0, 200)]
+        self.instruments_main_color = [(200, 0, 0), (0, 200, 0), (0, 0, 200)]
         # bass, melody
-        self.rhythms = [[0.125] * 24, [0.125] * 24, [0.0625] * 48]
+        self.rhythms = [[0.125] * 24, [0.125] * 24, [0.125] * 24]
         self.notes_selected = [[-1] * len(self.rhythms[0]), [-1] * len(self.rhythms[1]), [-1] * len(self.rhythms[2])]
         # self.notes_selected[0][3] = 4
 
@@ -23,6 +25,11 @@ class Main:
         self.score_width = 1400
         self.height_start = 220
         self.height_stop = self.screen_height - 300
+
+        self.frame_counter = 25
+
+        self.music_change = [False, False, False]
+        self.key_pressed = [False, False, False]
 
         self.mp_drawing = mp.solutions.drawing_utils
         self.mp_drawing_styles = mp.solutions.drawing_styles
@@ -72,46 +79,93 @@ class Main:
                         for a in range(len(self.visualizations.notes_margin_left[i])):
                             self.visualizations.notes_margin_left[i][a] += self.visualizations.score_xpos
 
-                self.video_analysis.analyze(image, holistic)
+                # get all people in the image
+                people = self.video_analysis.find_users(image)
+                # print([(p[1], p[2]) for p in people])
+                # sort after who is in front / x position
+                people.sort(key=lambda row: row[1] + row[0].shape[0] / 2, reverse=True)
+                # print("sorted", [(p[1], p[2]) for p in people])
+
+                for index, person in enumerate(people):
+                    results = self.video_analysis.analyze(person[0], holistic)
+                    frame_height, frame_width, _ = person[0].shape
+
+                    instrument = (self.current_instrument + index) % len(self.instruments)
+
+                    if results.pose_landmarks:
+                        head_pos = self.video_analysis.update_head_pos(frame_height, frame_width, person[1], person[2],
+                                                                       results)
+
+                        head_over_note = self.video_analysis.check_head_in_note(
+                            instrument, self.visualizations.notes_margin_left, self.visualizations.notes_y_pos,
+                            head_pos)
+
+                        if head_over_note:
+                            self.notes_selected[instrument][head_over_note[0]] = head_over_note[1]
+
+                        if self.frame_counter >= 15:
+                            self.frame_counter = 0
+                            shirt_color = self.video_analysis.detect_shirt_color(image, results)
+                            self.instruments_color[instrument] = shirt_color
+                        self.frame_counter += 1
+
+                        head_width = self.video_analysis.get_face_size(frame_height, frame_width, results)
+                        self.visualizations.draw_user(image, head_pos, self.instruments_color[instrument], head_width)
 
                 self.visualizations.draw_score(image)
-                self.visualizations.draw_notes(image, self.notes_selected, self.current_instrument)
-                self.visualizations.draw_moving_line(image)
+                self.visualizations.draw_notes(image, self.notes_selected, self.instruments_color,self.instruments_main_color)
+                image = self.visualizations.draw_moving_line(image)
 
-                if self.video_analysis.human_detected():
-                    self.video_analysis.update_head_pos(image_height, image_width)
-
-                    head_over_note = self.video_analysis.check_head_in_note(self.current_instrument,
-                                                                            self.visualizations.notes_margin_left,
-                                                                            self.visualizations.notes_y_pos)
-                    if head_over_note:
-                        self.notes_selected[self.current_instrument][head_over_note[0]] = head_over_note[1]
-
+                self.visualizations.write_instruments(image, self.instruments, self.instruments_color,
+                                                      self.current_instrument,self.instruments_main_color)
 
                 counter = self.music.react_to_messages(self.notes_selected)
-                if counter == 0 and self.previous_counter != 0:
+                self.visualizations.beat = counter
+                """if counter == 0 and self.previous_counter != 0:
                     self.visualizations.set_track_len()
                     self.previous_counter = 0
                 if counter:
-                    self.previous_counter = counter
-
-
-                font = cv2.FONT_HERSHEY_SIMPLEX
-                cv2.putText(image, self.instruments[self.current_instrument], (10, 70), font, 2.5,
-                            (0, 0, 0), 10, cv2.LINE_AA)
-                cv2.putText(image, self.instruments[self.current_instrument], (10, 70), font, 2.5,
-                            (255, 255, 255), 3, cv2.LINE_AA)
+                    self.previous_counter = counter"""
 
                 cv2.imshow(self.window_name, image)
 
-                for i in range(1, 4):
-                    if keyboard.is_pressed(i + 1):
-                        self.current_instrument = i - 1
-                        print("current", self.current_instrument)
+                self.visualizations.draw_control_img(self.instruments, self.instruments_color, self.music_change, self.instruments_main_color)
+
+                self.key_handler()
 
                 if cv2.waitKey(5) & 0xFF == 27:
                     break
         cap.release()
+
+    def key_handler(self):
+        for i in range(1, 4):
+            if keyboard.is_pressed(i + 1):
+                self.current_instrument = i - 1
+                self.notes_selected[i - 1] = [-1] * len(self.rhythms[i - 1])
+                print("current", self.current_instrument)
+
+        if keyboard.is_pressed("q") and not self.key_pressed[0]:
+            self.music_change[0] = not self.music_change[0]
+            self.music.set_filter(0, self.music_change[0])
+            self.key_pressed[0] = True
+
+        if not keyboard.is_pressed("q"):
+            self.key_pressed[0] = False
+
+        if keyboard.is_pressed("w") and not self.key_pressed[1]:
+            self.music_change[1] = not self.music_change[1]
+            self.music.set_filter(1, self.music_change[1])
+            self.key_pressed[1] = True
+        if not keyboard.is_pressed("w"):
+            self.key_pressed[1] = False
+
+        if keyboard.is_pressed("e") and not self.key_pressed[2]:
+            self.music_change[2] = not self.music_change[2]
+            self.music.set_filter(2, self.music_change[2])
+            self.key_pressed[2] = True
+
+        if not keyboard.is_pressed("e"):
+            self.key_pressed[2] = False
 
 
 main = Main()

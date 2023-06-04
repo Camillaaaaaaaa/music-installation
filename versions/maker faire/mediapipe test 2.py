@@ -466,8 +466,6 @@ class BodyDetection:
 
         cv2.circle(image, (int(x_nose), int(y_nose)), int(radius_head), self.head_color, 6)
 
-
-
         self.mp_drawing.draw_landmarks(
             image,
             results.face_landmarks,

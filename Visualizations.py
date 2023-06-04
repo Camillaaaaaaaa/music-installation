@@ -16,6 +16,8 @@ class Visualizations:
         self.notes_y_pos = [height_start]
         self.rhythms = rhythms
 
+        self.beat = 0
+
         self.len_track = 0
         self.last_track_time = time.time()
 
@@ -49,9 +51,19 @@ class Visualizations:
 
     def draw_moving_line(self, img):
         # draw moving time line
-        if self.len_track != 0:
+        x_pos_start = int(self.notes_margin_left[0][self.beat])
+        x_pos_end = int(self.notes_margin_left[0][self.beat+1])
+
+        overlay = img.copy()
+        cv2.rectangle(overlay, (x_pos_start, 0), (x_pos_end, img.shape[0]), (0, 0, 0), -1)
+
+        alpha = 0.4  # Transparency factor.
+        img = cv2.addWeighted(overlay, alpha, img, 1 - alpha, 0)
+        return img
+
+        """if self.len_track != 0:
             line_x_pos = int(self.score_xpos + self.score_width * (time.time() - self.last_track_time) / self.len_track)
-            cv2.line(img, (line_x_pos, 0), (line_x_pos, img.shape[1]), (0, 0, 0), 2)
+            cv2.line(img, (line_x_pos, 0), (line_x_pos, img.shape[1]), (0, 0, 0), 2)"""
 
     def draw_score(self, img):
         cv2.line(img, (self.score_xpos, self.scores_y_pos[1]), (self.score_xpos, self.scores_y_pos[-2]),
@@ -73,27 +85,15 @@ class Visualizations:
                      (int(i), self.scores_y_pos[-1]), (0, 0, 0), 3)"""
         return img
 
-    def draw_notes(self, img, notes_selected, current_instrument):
+    def draw_notes(self, img, notes_selected, colors, main_colors):
         for index_instr, instrument in enumerate(notes_selected):
             for column, row in enumerate(instrument):
                 if row != -1:
                     x_pos_center = int(
                         self.notes_margin_left[index_instr][column] + self.notes_widths[index_instr][column] / 2)
                     y_pos_center = int(self.notes_y_pos[int(row * 2)] + self.score_spacing / 2)
-                    if index_instr == 0:
-                        if self.rhythms[0][column] == 0.125:
-                            cv2.circle(img, [x_pos_center, y_pos_center], int(self.score_spacing / 2), (0, 200, 0), -1)
-
-                        elif self.rhythms[0][column] == 0.25:
-                            cv2.circle(img, [x_pos_center, y_pos_center], int(self.score_spacing / 2), (0, 200, 0), 3)
-
-                    if index_instr == 1:
-                        if self.rhythms[1][column] == 0.125:
-                            cv2.circle(img, [x_pos_center, y_pos_center], int(self.score_spacing / 2), (200, 0, 0), -1)
-
-                        elif self.rhythms[1][column] == 0.25:
-                            cv2.circle(img, [x_pos_center, y_pos_center], int(self.score_spacing / 2), (200, 0, 0), 3)
-                    if index_instr == 2:
+                    # line for drums
+                    """if index_instr == 2:
                         if column != 0:
                             x_pos_center_start = int(
                                 self.notes_margin_left[index_instr][column - 1] + self.notes_widths[index_instr][
@@ -101,10 +101,55 @@ class Visualizations:
                             y_pos_center_start = int(
                                 self.notes_y_pos[int(instrument[column - 1] * 2)] + self.score_spacing / 2)
                             cv2.line(img, [x_pos_center_start, y_pos_center_start], [x_pos_center, y_pos_center],
-                                     (0, 0, 200), 3)
+                                     self.colors[index_instr], 3)
+                    else:"""
+                    cv2.circle(img, [x_pos_center, y_pos_center], int(self.score_spacing / 2),
+                               main_colors[index_instr], -1)
+                    cv2.circle(img, [x_pos_center, y_pos_center], int(self.score_spacing / 2-7),
+                               colors[index_instr], 7)
 
-    def draw_user(self, img):
-        pass
+
+    def draw_user(self, img, pos, color, size):
+        cv2.circle(img, (int(pos[0]), int(pos[1])), int(size), (0, 0, 0), 15)
+
+        cv2.circle(img, (int(pos[0]), int(pos[1])), int(size), color, 10)
+
+    def write_instruments(self, image, instruments, instruments_color, current_instrument, main_colors):
+        font = cv2.FONT_HERSHEY_SIMPLEX
+        for index, instrument in enumerate(instruments):
+            if index == current_instrument:
+                cv2.putText(image, instrument, (10 + 320 * index, 70), font, 2.5,
+                            (0, 0, 0), 20, cv2.LINE_AA)
+                cv2.putText(image, instrument, (10 + 320 * index, 70), font, 2.5,
+                            instruments_color[index], 13, cv2.LINE_AA)
+                cv2.putText(image, instrument, (10 + 320 * index, 70), font, 2.5,
+                            main_colors[index], 5, cv2.LINE_AA)
+            else:
+                cv2.putText(image, instrument, (10 + 320 * index, 70), font, 2.5,
+                            (0, 0, 0), 10, cv2.LINE_AA)
+                cv2.putText(image, instrument, (10 + 320 * index, 70), font, 2.5,
+                            instruments_color[index], 6, cv2.LINE_AA)
+                cv2.putText(image, instrument, (10 + 320 * index, 70), font, 2.5,
+                            main_colors[index], 2, cv2.LINE_AA)
+
+    def draw_control_img(self, instruments, instruments_color, music_change, main_colors):
+        img = np.zeros((250, 650, 3), np.uint8)
+        img[:, :] = (255, 255, 255)
+
+        font = cv2.FONT_HERSHEY_SIMPLEX
+
+        for index, instrument in enumerate(instruments):
+            cv2.putText(img, str(index + 1) + " " + instrument + ": " + str(music_change[index]), (10, 70 + 70 * index),
+                        font, 1.5,
+                        (0, 0, 0), 8, cv2.LINE_AA)
+            cv2.putText(img, str(index + 1) + " " + instrument + ": " + str(music_change[index]), (10, 70 + 70 * index),
+                        font, 1.5,
+                        instruments_color[index], 5, cv2.LINE_AA)
+            cv2.putText(img, str(index + 1) + " " + instrument + ": " + str(music_change[index]), (10, 70 + 70 * index),
+                        font, 1.5,
+                        main_colors[index], 2, cv2.LINE_AA)
+
+        cv2.imshow("control", img)
 
     def undistort(self, img):
         DIM = (1280, 720)
