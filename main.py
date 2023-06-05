@@ -10,8 +10,8 @@ class Main:
     def __init__(self):
         self.instruments = ["Drums", "Bass", "Melody"]
         self.current_instrument = 0
-        self.instruments_color = [(200, 0, 0), (0, 200, 0), (0, 0, 200)]
-        self.instruments_main_color = [(200, 0, 0), (0, 200, 0), (0, 0, 200)]
+        self.instruments_color = [(197, 95, 89), (89, 174, 197), (89, 97, 197)]
+        self.instruments_main_color = [(197, 95, 89), (89, 174, 197), (89, 97, 197)]
         # bass, melody
         self.rhythms = [[0.125] * 24, [0.125] * 24, [0.125] * 24]
         self.notes_selected = [[-1] * len(self.rhythms[0]), [-1] * len(self.rhythms[1]), [-1] * len(self.rhythms[2])]
@@ -41,12 +41,16 @@ class Main:
 
         self.music = Music()
 
+        for i in range(3):
+            self.music.set_filter(i, self.music_change[i])
+
         self.window_name = "loop station"
 
         cv2.namedWindow(self.window_name, cv2.WND_PROP_FULLSCREEN)
         cv2.setWindowProperty(self.window_name, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
 
         self.previous_counter = 1
+        self.previous_amount_people = 1
         self.set_track_len_amount = 0
 
     def start_camera(self):
@@ -113,23 +117,29 @@ class Main:
                         self.visualizations.draw_user(image, head_pos, self.instruments_color[instrument], head_width)
 
                 self.visualizations.draw_score(image)
-                self.visualizations.draw_notes(image, self.notes_selected, self.instruments_color,self.instruments_main_color)
+                image = self.visualizations.draw_notes(image, self.notes_selected, self.instruments_color,
+                                                       self.instruments_main_color)
                 image = self.visualizations.draw_moving_line(image)
 
                 self.visualizations.write_instruments(image, self.instruments, self.instruments_color,
-                                                      self.current_instrument,self.instruments_main_color)
+                                                      self.current_instrument, self.instruments_main_color)
 
                 counter = self.music.react_to_messages(self.notes_selected)
                 self.visualizations.beat = counter
-                """if counter == 0 and self.previous_counter != 0:
-                    self.visualizations.set_track_len()
-                    self.previous_counter = 0
-                if counter:
-                    self.previous_counter = counter"""
+
+                if self.previous_counter != counter and counter % 2 == 1:
+                    if self.notes_selected[0][counter] != -1:
+                        self.visualizations.drums_size = 1.3
+
+                self.previous_counter = counter
+
+                if self.visualizations.drums_size > 1:
+                    self.visualizations.drums_size -= 0.05
 
                 cv2.imshow(self.window_name, image)
 
-                self.visualizations.draw_control_img(self.instruments, self.instruments_color, self.music_change, self.instruments_main_color)
+                self.visualizations.draw_control_img(self.instruments, self.instruments_color, self.music_change,
+                                                     self.instruments_main_color)
 
                 self.key_handler()
 
@@ -141,8 +151,11 @@ class Main:
         for i in range(1, 4):
             if keyboard.is_pressed(i + 1):
                 self.current_instrument = i - 1
-                self.notes_selected[i - 1] = [-1] * len(self.rhythms[i - 1])
                 print("current", self.current_instrument)
+
+        for i in range(4, 7):
+            if keyboard.is_pressed(i + 1):
+                self.notes_selected[(i - 1) % 3] = [-1] * len(self.rhythms[(i - 1) % 3])
 
         if keyboard.is_pressed("q") and not self.key_pressed[0]:
             self.music_change[0] = not self.music_change[0]
