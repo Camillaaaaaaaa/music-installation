@@ -11,7 +11,7 @@ class Main:
         self.instruments = ["Drums", "Bass", "Melody"]
         self.current_instrument = 0
         self.instruments_color = [(197, 95, 89), (89, 174, 197), (89, 97, 197)]
-        self.instruments_main_color = [(197, 95, 89), (89, 174, 197), (89, 97, 197)]
+        self.possible_colors = [[], [], []]
         # bass, melody
         self.rhythms = [[0.125] * 24, [0.125] * 24, [0.125] * 24]
         self.notes_selected = [[-1] * len(self.rhythms[0]), [-1] * len(self.rhythms[1]), [-1] * len(self.rhythms[2])]
@@ -22,9 +22,10 @@ class Main:
         self.port_A_to_P = 0
         self.port_P_to_Q = 0
 
-        self.score_width = 1400
-        self.height_start = 220
+        self.score_width = 900
+        self.height_start = 250
         self.height_stop = self.screen_height - 300
+        self.score_offset_x = 350
 
         self.frame_counter = 25
 
@@ -35,8 +36,8 @@ class Main:
         self.mp_drawing_styles = mp.solutions.drawing_styles
         self.mp_holistic = mp.solutions.holistic
 
-        self.visualizations = Visualizations(self.score_width, self.height_start, self.height_stop, self.rhythms,
-                                             len(self.instruments))
+        self.visualizations = Visualizations(self.height_start, self.height_stop, self.rhythms,
+                                             len(self.instruments), self.score_offset_x)
         self.video_analysis = VideoAnalysis(self.mp_holistic)
 
         self.music = Music()
@@ -73,15 +74,12 @@ class Main:
                 image_height, image_width, _ = image.shape
 
                 image = cv2.flip(image, 1)
+                image_visualization = image.copy()
 
                 # image = self.undistort(image)
 
-                # set dimensions of score
-                if self.visualizations.score_xpos == 0:
-                    self.visualizations.score_xpos = int((image_width - self.score_width) / 2)
-                    for i in range(len(self.visualizations.notes_margin_left)):
-                        for a in range(len(self.visualizations.notes_margin_left[i])):
-                            self.visualizations.notes_margin_left[i][a] += self.visualizations.score_xpos
+                if self.visualizations.score_width == 0:
+                    self.visualizations.set_width(int(image.shape[1] - self.score_offset_x - 50))
 
                 # get all people in the image
                 people = self.video_analysis.find_users(image)
@@ -89,6 +87,8 @@ class Main:
                 # sort after who is in front / x position
                 people.sort(key=lambda row: row[1] + row[0].shape[0] / 2, reverse=True)
                 # print("sorted", [(p[1], p[2]) for p in people])
+
+                image_visualization = self.visualizations.draw_background(image_visualization)
 
                 for index, person in enumerate(people):
                     results = self.video_analysis.analyze(person[0], holistic)
@@ -107,22 +107,19 @@ class Main:
                         if head_over_note:
                             self.notes_selected[instrument][head_over_note[0]] = head_over_note[1]
 
-                        if self.frame_counter >= 15:
-                            self.frame_counter = 0
-                            shirt_color = self.video_analysis.detect_shirt_color(image, results)
-                            self.instruments_color[instrument] = shirt_color
                         self.frame_counter += 1
 
                         head_width = self.video_analysis.get_face_size(frame_height, frame_width, results)
-                        self.visualizations.draw_user(image, head_pos, self.instruments_color[instrument], head_width)
+                        self.visualizations.draw_user(image_visualization, head_pos, self.instruments_color[instrument],
+                                                      head_width)
 
-                self.visualizations.draw_score(image)
-                image = self.visualizations.draw_notes(image, self.notes_selected, self.instruments_color,
-                                                       self.instruments_main_color)
-                image = self.visualizations.draw_moving_line(image)
+                self.visualizations.draw_score(image_visualization)
+                image_visualization = self.visualizations.draw_notes(image_visualization, self.notes_selected,
+                                                                     self.instruments_color)
+                image_visualization = self.visualizations.draw_moving_line(image_visualization)
 
-                self.visualizations.write_instruments(image, self.instruments, self.instruments_color,
-                                                      self.current_instrument, self.instruments_main_color)
+                self.visualizations.write_instruments(image_visualization, self.instruments, self.instruments_color,
+                                                      self.current_instrument)
 
                 counter = self.music.react_to_messages(self.notes_selected)
                 self.visualizations.beat = counter
@@ -136,10 +133,9 @@ class Main:
                 if self.visualizations.drums_size > 1:
                     self.visualizations.drums_size -= 0.05
 
-                cv2.imshow(self.window_name, image)
+                cv2.imshow(self.window_name, image_visualization)
 
-                self.visualizations.draw_control_img(self.instruments, self.instruments_color, self.music_change,
-                                                     self.instruments_main_color)
+                self.visualizations.draw_control_img(self.instruments, self.instruments_color, self.music_change)
 
                 self.key_handler()
 
