@@ -16,7 +16,7 @@ class Visualizations:
         self.notes_y_pos = [height_start]
         self.rhythms = rhythms
         self.white = (227, 224, 228)
-        self.amount_instruments=amount_instruments
+        self.amount_instruments = amount_instruments
 
         self.drums_size = 1
 
@@ -38,9 +38,8 @@ class Visualizations:
 
         self.notes_margin_left = [[self.score_xpos], [self.score_xpos], [self.score_xpos]]
 
-
-    def set_width(self,width):
-        self.score_width=width
+    def set_width(self, width):
+        self.score_width = width
         full_note_width = self.score_width / sum(self.rhythms[0])
 
         self.notes_widths = []
@@ -163,20 +162,23 @@ class Visualizations:
                 cv2.putText(image, instrument, (10 + 320 * index, 70), font, 2.5,
                             instruments_color[index], 2, cv2.LINE_AA)
 
-    def draw_control_img(self, instruments, instruments_color, music_change):
+    def draw_control_img(self, instruments, instruments_color):
         img = np.zeros((250, 650, 3), np.uint8)
         img[:, :] = self.white
 
         font = cv2.FONT_HERSHEY_COMPLEX
 
+        cv2.putText(img, "on/off  change  reset", (10, 30), font, 0.7, (0, 0, 0), 1, cv2.LINE_AA)
+
         for index, instrument in enumerate(instruments):
-            cv2.putText(img, str(index + 1) + " " + instrument + ": " + str(music_change[index]), (10, 70 + 70 * index),
+            text = str(index + 1) + "   " + str(index + 4) + "   " + str(
+                index + 7) + "   " + instrument
+            cv2.putText(img, text,
+                        (10, 80 + 70 * index),
                         font, 1.5,
                         (0, 0, 0), 8, cv2.LINE_AA)
-            cv2.putText(img, str(index + 1) + " " + instrument + ": " + str(music_change[index]), (10, 70 + 70 * index),
-                        font, 1.5,
-                        self.white, 5, cv2.LINE_AA)
-            cv2.putText(img, str(index + 1) + " " + instrument + ": " + str(music_change[index]), (10, 70 + 70 * index),
+            cv2.putText(img, text,
+                        (10, 80 + 70 * index),
                         font, 1.5,
                         instruments_color[index], 2, cv2.LINE_AA)
 

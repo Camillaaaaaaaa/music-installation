@@ -1,17 +1,23 @@
 import cv2
-from Visualizations import Visualizations
-from VideoAnalysis import VideoAnalysis
-from Music import Music
-import mediapipe as mp
 import keyboard
+import mediapipe as mp
+
+from Music import Music
+from VideoAnalysis import VideoAnalysis
+from Visualizations import Visualizations
 
 
 class Main:
     def __init__(self):
         self.instruments = ["Drums", "Bass", "Melody"]
         self.current_instrument = 0
-        self.instruments_color = [(197, 95, 89), (89, 174, 197), (89, 97, 197)]
-        self.possible_colors = [[], [], []]
+        self.possible_colors = [[(196, 94, 88), (112, 39, 35)],
+                                [(63, 140, 112), (58, 89, 66)],
+                                [(68, 91, 187), (29, 43, 104)]]
+        self.current_color = [0, 0, 0]
+        self.instruments_color = []
+        for index, i in enumerate(self.current_color):
+            self.instruments_color.append(self.possible_colors[index][i])
         # bass, melody
         self.rhythms = [[0.125] * 24, [0.125] * 24, [0.125] * 24]
         self.notes_selected = [[-1] * len(self.rhythms[0]), [-1] * len(self.rhythms[1]), [-1] * len(self.rhythms[2])]
@@ -135,7 +141,7 @@ class Main:
 
                 cv2.imshow(self.window_name, image_visualization)
 
-                self.visualizations.draw_control_img(self.instruments, self.instruments_color, self.music_change)
+                self.visualizations.draw_control_img(self.instruments, self.instruments_color)
 
                 self.key_handler()
 
@@ -147,34 +153,23 @@ class Main:
         for i in range(1, 4):
             if keyboard.is_pressed(i + 1):
                 self.current_instrument = i - 1
-                print("current", self.current_instrument)
 
         for i in range(4, 7):
+            index = (i - 1) % 3
+            if keyboard.is_pressed(i + 1) and not self.key_pressed[index]:
+                self.key_pressed[index] = True
+
+                self.current_color[index] = (self.current_color[index] + 1) % len(self.possible_colors[index])
+                self.instruments_color[index] = self.possible_colors[index][self.current_color[index]]
+                self.music_change[index] = not self.music_change[index]
+                self.music.set_filter(index, self.music_change[index])
+
+            if not keyboard.is_pressed(i + 1):
+                self.key_pressed[(i - 1) % 3] = False
+
+        for i in range(7, 10):
             if keyboard.is_pressed(i + 1):
                 self.notes_selected[(i - 1) % 3] = [-1] * len(self.rhythms[(i - 1) % 3])
-
-        if keyboard.is_pressed("q") and not self.key_pressed[0]:
-            self.music_change[0] = not self.music_change[0]
-            self.music.set_filter(0, self.music_change[0])
-            self.key_pressed[0] = True
-
-        if not keyboard.is_pressed("q"):
-            self.key_pressed[0] = False
-
-        if keyboard.is_pressed("w") and not self.key_pressed[1]:
-            self.music_change[1] = not self.music_change[1]
-            self.music.set_filter(1, self.music_change[1])
-            self.key_pressed[1] = True
-        if not keyboard.is_pressed("w"):
-            self.key_pressed[1] = False
-
-        if keyboard.is_pressed("e") and not self.key_pressed[2]:
-            self.music_change[2] = not self.music_change[2]
-            self.music.set_filter(2, self.music_change[2])
-            self.key_pressed[2] = True
-
-        if not keyboard.is_pressed("e"):
-            self.key_pressed[2] = False
 
 
 main = Main()
