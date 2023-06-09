@@ -9,6 +9,9 @@ from Visualizations import Visualizations
 
 class Main:
     def __init__(self):
+        self.detect_shirt_color = False
+        self.instruments_shirt_color = [(197, 95, 89), (89, 174, 197), (89, 97, 197)]
+
         self.instruments = ["Drums", "Bass", "Melody"]
         self.current_instrument = 0
         self.possible_colors = [[(196, 94, 88), (112, 39, 35)],
@@ -18,10 +21,9 @@ class Main:
         self.instruments_color = []
         for index, i in enumerate(self.current_color):
             self.instruments_color.append(self.possible_colors[index][i])
-        # bass, melody
+
         self.rhythms = [[0.125] * 24, [0.125] * 24, [0.125] * 24]
         self.notes_selected = [[-1] * len(self.rhythms[0]), [-1] * len(self.rhythms[1]), [-1] * len(self.rhythms[2])]
-        # self.notes_selected[0][3] = 4
 
         self.screen_height = 900
 
@@ -89,10 +91,8 @@ class Main:
 
                 # get all people in the image
                 people = self.video_analysis.find_users(image)
-                # print([(p[1], p[2]) for p in people])
                 # sort after who is in front / x position
                 people.sort(key=lambda row: row[1] + row[0].shape[0] / 2, reverse=True)
-                # print("sorted", [(p[1], p[2]) for p in people])
 
                 image_visualization = self.visualizations.draw_background(image_visualization)
 
@@ -113,15 +113,20 @@ class Main:
                         if head_over_note:
                             self.notes_selected[instrument][head_over_note[0]] = head_over_note[1]
 
-                        self.frame_counter += 1
+                        if self.detect_shirt_color:
+                            if self.frame_counter >= 15:
+                                self.frame_counter = 0
+                                shirt_color = self.video_analysis.detect_shirt_color(image, results)
+                                self.instruments_shirt_color[instrument] = shirt_color
+                            self.frame_counter += 1
 
                         head_width = self.video_analysis.get_face_size(frame_height, frame_width, results)
                         self.visualizations.draw_user(image_visualization, head_pos, self.instruments_color[instrument],
-                                                      head_width)
+                                                      head_width, self.instruments_shirt_color[instrument], self.detect_shirt_color)
 
                 self.visualizations.draw_score(image_visualization)
                 image_visualization = self.visualizations.draw_notes(image_visualization, self.notes_selected,
-                                                                     self.instruments_color)
+                                                                     self.instruments_color,self.instruments_shirt_color, self.detect_shirt_color)
                 image_visualization = self.visualizations.draw_moving_line(image_visualization)
 
                 self.visualizations.write_instruments(image_visualization, self.instruments, self.instruments_color,

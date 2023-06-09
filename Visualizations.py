@@ -1,6 +1,5 @@
 import cv2
 import numpy as np
-import time
 
 
 class Visualizations:
@@ -21,9 +20,6 @@ class Visualizations:
         self.drums_size = 1
 
         self.beat = 0
-
-        self.len_track = 0
-        self.last_track_time = time.time()
 
         for i in range(1, 6):
             h = int(height_start + i * self.score_spacing)
@@ -54,10 +50,6 @@ class Visualizations:
             for note_len in self.rhythms[i]:
                 width += note_len * full_note_width
                 self.notes_margin_left[i].append(width)
-
-    def set_track_len(self):
-        self.len_track = time.time() - self.last_track_time
-        self.last_track_time = time.time()
 
     def draw_background(self, img):
         for i in range(0, 100, 10):
@@ -102,30 +94,15 @@ class Visualizations:
         cv2.rectangle(img, (self.score_xpos + self.score_width - 2, self.scores_y_pos[1] - 2),
                       (self.score_xpos + self.score_width + 10, self.scores_y_pos[-2] + 2), (0, 0, 0),
                       -1)
-
-        """for i in self.notes_margin_left[0]:
-            cv2.line(img, (int(i), self.scores_y_pos[0]),
-                     (int(i), self.scores_y_pos[-1]), (0, 0, 0), 3)"""
         return img
 
-    def draw_notes(self, img, notes_selected, colors):
+    def draw_notes(self, img, notes_selected, colors,shirt_colors, detect_shirt_color):
         for index_instr, instrument in enumerate(notes_selected):
             for column, row in enumerate(instrument):
                 if row != -1:
                     x_pos_center = int(
                         self.notes_margin_left[index_instr][column] + self.notes_widths[index_instr][column] / 2)
                     y_pos_center = int(self.notes_y_pos[int(row * 2)] + self.score_spacing / 2)
-                    # line for drums
-                    """if index_instr == 2:
-                        if column != 0:
-                            x_pos_center_start = int(
-                                self.notes_margin_left[index_instr][column - 1] + self.notes_widths[index_instr][
-                                    column - 1] / 2)
-                            y_pos_center_start = int(
-                                self.notes_y_pos[int(instrument[column - 1] * 2)] + self.score_spacing / 2)
-                            cv2.line(img, [x_pos_center_start, y_pos_center_start], [x_pos_center, y_pos_center],
-                                     self.colors[index_instr], 3)
-                    else:"""
                     if index_instr == 0:
                         overlay = img.copy()
 
@@ -137,12 +114,19 @@ class Visualizations:
 
                     cv2.circle(img, [x_pos_center, y_pos_center], int(self.score_spacing / 2),
                                colors[index_instr], -1)
+
+                    if detect_shirt_color:
+                        cv2.circle(img, [x_pos_center, y_pos_center], int(self.score_spacing / 2)-5,
+                                   shirt_colors[index_instr], 5)
         return img
 
-    def draw_user(self, img, pos, color, size):
-        cv2.circle(img, (int(pos[0]), int(pos[1])), int(size), (0, 0, 0), 30)
-
-        cv2.circle(img, (int(pos[0]), int(pos[1])), int(size), color, 25)
+    def draw_user(self, img, pos, color, size, shirt_color, detect_shirt_color):
+        if detect_shirt_color:
+            cv2.circle(img, (int(pos[0]), int(pos[1])), int(size)-10, (0, 0, 0), 30)
+            cv2.circle(img, (int(pos[0]), int(pos[1])), int(size)-10, shirt_color, 25)
+        else:
+            cv2.circle(img, (int(pos[0]), int(pos[1])), int(size)-10, (0, 0, 0), 30)
+            cv2.circle(img, (int(pos[0]), int(pos[1])), int(size)-10, color, 25)
 
     def write_instruments(self, image, instruments, instruments_color, current_instrument):
         font = cv2.FONT_HERSHEY_COMPLEX

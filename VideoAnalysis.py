@@ -163,19 +163,6 @@ class VideoAnalysis:
             except:
                 print("could not crop image")
 
-            # increase saturation
-            # https://9to5answer.com/how-to-change-saturation-values-with-opencv
-            """if self.increase_saturation:
-                crop_img = cv2.cvtColor(crop_img, cv2.COLOR_BGR2HSV).astype("float32")
-
-                (h, s, v) = cv2.split(crop_img)
-                s = s * 2
-                s = np.clip(s, 0, 255)
-                crop_img = cv2.merge([h, s, v])
-
-                crop_img = cv2.cvtColor(crop_img.astype("uint8"), cv2.COLOR_HSV2BGR)"""
-
-                # cv2.imshow("saturated", crop_img)
             # get dominant color of image
             # https://stackoverflow.com/questions/43111029/how-to-find-the-average-colour-of-an-image-in-python-with-opencv
 

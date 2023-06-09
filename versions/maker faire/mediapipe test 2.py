@@ -2,7 +2,6 @@ import cv2
 import mediapipe as mp
 import math
 from loopstation import LoopStation
-import pygame
 import time
 from note import Note
 import numpy as np

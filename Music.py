@@ -38,12 +38,6 @@ class Music:
                     self.melody_counter = 0
                     self.drums_counter = 0
 
-            """# drums also on node off message
-            if message[0] == 128 + 15:
-                # drums
-                self.play_drums(selected_notes[0])
-                self.drums_counter += 1"""
-
         return self.melody_counter
 
     def play_drums(self, selected_notes):
