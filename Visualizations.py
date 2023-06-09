@@ -132,18 +132,18 @@ class Visualizations:
         font = cv2.FONT_HERSHEY_COMPLEX
         for index, instrument in enumerate(instruments):
             if index == current_instrument:
-                cv2.putText(image, instrument, (10 + 320 * index, 70), font, 2.5,
+                cv2.putText(image, instrument, (self.score_xpos+20 + 320 * index, 70), font, 2.5,
                             (0, 0, 0), 20, cv2.LINE_AA)
-                cv2.putText(image, instrument, (10 + 320 * index, 70), font, 2.5,
+                cv2.putText(image, instrument, (self.score_xpos+20 + 320 * index, 70), font, 2.5,
                             self.white, 13, cv2.LINE_AA)
-                cv2.putText(image, instrument, (10 + 320 * index, 70), font, 2.5,
+                cv2.putText(image, instrument, (self.score_xpos+20 + 320 * index, 70), font, 2.5,
                             instruments_color[index], 5, cv2.LINE_AA)
             else:
-                cv2.putText(image, instrument, (10 + 320 * index, 70), font, 2.5,
+                cv2.putText(image, instrument, (self.score_xpos+20 + 320 * index, 70), font, 2.5,
                             (0, 0, 0), 10, cv2.LINE_AA)
-                cv2.putText(image, instrument, (10 + 320 * index, 70), font, 2.5,
+                cv2.putText(image, instrument, (self.score_xpos+20 + 320 * index, 70), font, 2.5,
                             self.white, 6, cv2.LINE_AA)
-                cv2.putText(image, instrument, (10 + 320 * index, 70), font, 2.5,
+                cv2.putText(image, instrument, (self.score_xpos+20 + 320 * index, 70), font, 2.5,
                             instruments_color[index], 2, cv2.LINE_AA)
 
     def draw_control_img(self, instruments, instruments_color):
