@@ -5,6 +5,7 @@ import time
 
 class AbletonCommunication():
     def __init__(self):
+        # set correct port numbers
         self.port_P_to_A = 2
         self.port_A_to_P = 0
 
