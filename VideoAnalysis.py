@@ -7,7 +7,8 @@ class VideoAnalysis:
         self.mp_holistic = mp_holistic
 
         self.head_pos = []
-        self.results = 0
+
+        # https://automaticaddison.com/how-to-detect-objects-in-video-using-mobilenet-ssd-in-opencv/
 
         # variable for detection people with mobilenet ssd
         self.RESIZED_DIMENSIONS = (300, 300)  # Dimensions that SSD was trained on.
@@ -50,8 +51,6 @@ class VideoAnalysis:
         head_pos = [x_coodinate, y_coodinate]
         return head_pos
 
-    def human_detected(self):
-        return self.results.pose_landmarks
 
     def find_users(self, frame):
         people = []
@@ -77,7 +76,7 @@ class VideoAnalysis:
             confidence = neural_network_output[0, 0, i, 2]
 
             # Confidence must be at least 30%
-            if confidence > 0.60:
+            if confidence > 0.40:
                 idx = int(neural_network_output[0, 0, i, 1])
                 if self.classes[idx] == "person":
                     bounding_box = neural_network_output[0, 0, i, 3:7] * np.array(
@@ -98,8 +97,8 @@ class VideoAnalysis:
                         endY = 0
 
                     crop_img = frame[startY: endY, startX:endX]
-                    """if crop_img.shape[0] != 0 and crop_img.shape[1] != 0:
-                        cv2.imshow('person', crop_img)"""
+                    """  if crop_img.shape[0] != 0 and crop_img.shape[1] != 0:
+                        cv2.imshow('person' + str(i), crop_img)"""
 
                     people.append([crop_img, startX, startY])
 
